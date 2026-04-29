@@ -1,13 +1,21 @@
 import express from 'express'
+import dotenv from 'dotenv'
+import MongoDB from './config/db.js'
+
+dotenv.config()
 
 const app = express()
-const PORT = 3000
+
 app.use(express.json())
 
 app.get('/', (req, res)=> {
     res.send("Backend of Youtube is running...")
 })
-
-app.listen(PORT, ()=>{
-    console.log(`The server is running ar port: ${PORT}`)
+MongoDB().then(() => {
+    app.listen(process.env.PORT, () => {
+        console.log(`The server is running on Port: ${process.env.PORT}`)
+    })
+}).catch((err) => {
+    console.log('Failed to connect because of DB', err.message)
 })
+
