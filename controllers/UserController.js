@@ -21,7 +21,7 @@ export const registerUser = async (req, res) => {
             name, email, password: hashPassword
         })
 
-        res.status(200).json(user)
+        res.status(200).json({message: "User registered successfully..."})
 
     }
     catch (err) {
@@ -33,6 +33,7 @@ export const registerUser = async (req, res) => {
 export const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body
+
         if (!email || !password) {
             res.status(401).json({ message: "All fields are required..." })
         }
@@ -46,7 +47,14 @@ export const loginUser = async (req, res) => {
                 process.env.JWT_secret,
                 { expiresIn: "1h" }
             )
-            res.json({ token })
+            res.json({
+                token,
+                user: {
+                    id: user._id,
+                    name: user.name,
+                    email: user.email
+                }
+            })
         }
         else {
             res.status(401).json({ message: "Invalid Credentials..." })
