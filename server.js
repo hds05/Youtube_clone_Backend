@@ -2,6 +2,7 @@ import express from 'express'
 import dotenv from 'dotenv'
 import MongoDB from './config/db.js'
 import userRoutes from './routes/userRoutes.js'
+import videoRoutes from './routes/videoRoutes.js'
 import cors from 'cors'
 
 dotenv.config()
@@ -27,3 +28,4 @@ MongoDB().then(() => {
 })
 
 app.use('/', userRoutes)
+app.use('/', videoRoutes)
