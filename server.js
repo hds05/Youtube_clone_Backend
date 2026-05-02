@@ -3,7 +3,9 @@ import dotenv from 'dotenv'
 import MongoDB from './config/db.js'
 import userRoutes from './routes/userRoutes.js'
 import videoRoutes from './routes/videoRoutes.js'
+import channelRoutes from './routes/channelRoutes.js';
 import cors from 'cors'
+import { protect } from './middleware/authMiddleware.js'
 
 dotenv.config()
 
@@ -29,3 +31,4 @@ MongoDB().then(() => {
 
 app.use('/', userRoutes)
 app.use('/', videoRoutes)
+app.use('/channel',protect ,channelRoutes);
