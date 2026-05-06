@@ -5,7 +5,6 @@ const commentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
   },
-  userName: String,
   text: String,
   timestamp: {
     type: Date,
