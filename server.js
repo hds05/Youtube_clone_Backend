@@ -32,3 +32,4 @@ MongoDB().then(() => {
 app.use('/', userRoutes)
 app.use('/', videoRoutes)
 app.use('/channel',protect ,channelRoutes);
+app.use("/uploads", express.static("uploads"))
