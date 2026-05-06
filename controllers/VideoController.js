@@ -230,3 +230,75 @@ export const deleteComment = async (req, res) => {
     res.status(500).json({ message: `Server Error: ${err.message}` });
   }
 };
+
+export const editMyVideo = async (req, res) => {
+  try {
+    const videoId = req.params.id;
+
+    const video = await Video.findById(videoId);
+
+    if (!video) {
+      return res.status(404).json({ message: "Video not found" });
+    }
+
+    if (video.userId.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    const {
+      title,
+      description,
+      category,
+      thumbnailUrl,
+      videoType,
+      videoUrl,
+    } = req.body;
+
+    video.title = title || video.title;
+    video.description = description || video.description;
+    video.category = category || video.category;
+    video.thumbnailUrl = thumbnailUrl || video.thumbnailUrl;
+    video.videoType = videoType || video.videoType;
+
+    if (videoType === "youtube") {
+      video.videoUrl = videoUrl || video.videoUrl;
+    }
+
+    await video.save();
+
+    res.status(200).json({
+      message: "Video updated successfully",
+      video,
+    });
+  } catch (err) {
+    console.log(err.message);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const deleteMyVideo = async (req, res) => {
+  try {
+    const videoId = req.params.id;
+
+    const video = await Video.findById(videoId);
+
+    if (!video) {
+      return res.status(404).json({ message: "Video not found" });
+    }
+
+    if (video.userId.toString() !== req.user.id) {
+      return res
+        .status(403)
+        .json({ message: "Not authorized to delete this video" });
+    }
+
+    await video.deleteOne();
+
+    res.status(200).json({
+      message: "Video Deleted Successfully...",
+    });
+  } catch (err) {
+    console.log(err.message);
+    res.status(500).json({ message: `Server Error: ${err.message}` });
+  }
+};
