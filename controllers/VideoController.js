@@ -12,10 +12,22 @@ export const getVideos = async (req, res) => {
 
 export const getVideoById = async (req, res) => {
   try {
-    const video = await Video.findOne({ videoId: req.params.id });
-    res.json(video);
+    const video = await Video.findById(req.params.id).populate(
+      "comments.userId",
+      "name",
+    );
+
+    if (!video) {
+      return res.status(404).json({
+        message: "Video not found",
+      });
+    }
+
+    res.status(200).json(video);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({
+      message: err.message,
+    });
   }
 };
 
@@ -33,17 +45,42 @@ export const uploadVideo = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // find channel of logged in user
     const channel = await Channel.findOne({ userId });
 
     if (!channel) {
-      return res.status(400).json({ message: "Create channel first" });
+      return res.status(400).json({
+        message: "Create channel first",
+      });
+    }
+
+    let finalVideoUrl = "";
+
+    if (req.body.videoType === "youtube") {
+      if (!req.body.videoUrl) {
+        return res.status(400).json({ message: "Video URL required" });
+      }
+      finalVideoUrl = req.body.videoUrl;
+    } else {
+      if (!req.file) {
+        return res.status(400).json({
+          message: "No video file uploaded",
+        });
+      }
+
+      finalVideoUrl = `/uploads/videos/${req.file.filename}`;
     }
 
     const newVideo = new Video({
-      ...req.body,
+      title: req.body.title,
+      description: req.body.description,
+      category: req.body.category,
+      thumbnailUrl: req.body.thumbnailUrl,
+
+      videoType: req.body.videoType,
+      videoUrl: finalVideoUrl,
 
       userId,
+      uploader: req.user.name,
       channelId: channel._id,
       channelName: channel.channelName,
       channelIcon: channel.channelIcon,
@@ -51,9 +88,16 @@ export const uploadVideo = async (req, res) => {
 
     await newVideo.save();
 
-    res.status(201).json(newVideo);
+    res.status(201).json({
+      message: "Video uploaded",
+      video: newVideo,
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.log(err);
+
+    res.status(500).json({
+      message: err.message,
+    });
   }
 };
 
@@ -67,27 +111,122 @@ export const getMyVideos = async (req, res) => {
 };
 
 export const uploadComment = async (req, res) => {
-  try{
-    const videoId = req.params.id
-    const {text} = req.body
-    const video = await Video.findOne({videoId})
-    const newComment = {
-      commentId: Date.now().toString(),
-      userId: req.user.id,
-      text,
-      timestamp: new Date()
+  try {
+    const videoId = req.params.id;
+    const { text } = req.body;
+    const video = await Video.findById(videoId);
+
+    if (!video) {
+      return res.status(404).json({ message: "Video not found" });
     }
 
-    video.comments.push(newComment)
-    await video.save()
+    const newComment = {
+      userId: req.user.id,
+      text,
+      timestamp: new Date(),
+    };
+
+    video.comments.unshift(newComment);
+    await video.save();
+
+    const updatedVideo = await Video.findById(videoId).populate(
+      "comments.userId",
+      "name",
+    );
 
     res.status(201).json({
       message: "comment uploaded",
-      comments: video.comments
-    })
+      comments: updatedVideo.comments,
+    });
+  } catch (err) {
+    console.log(err.message);
+    res.status(500).json({ message: err.message });
   }
-  catch(err){
-    console.log(err.message)
-    res.status(500).json({message: err.message})
+};
+
+export const editComment = async (req, res) => {
+  try {
+    const videoId = req.params.id;
+    const { commentId, text } = req.body;
+    const video = await Video.findById(videoId);
+    const comment = await video.comments.id(commentId);
+
+    if (!video) {
+      return res.status(400).json({ message: "Video not found..." });
+    }
+
+    if (!comment) {
+      return res
+        .status(400)
+        .json({ message: "The comment you want to edit is not there...😬" });
+    }
+    if (comment.userId.toString() !== req.user.id) {
+      return res
+        .status(403)
+        .json({ message: "Not allowed to edit this comment" });
+    }
+
+    comment.text = text;
+
+    await video.save();
+
+    const updatedVideo = await Video.findById(videoId).populate(
+      "comments.userId",
+      "name",
+    );
+
+    res.status(200).json({
+      message: "Comment updated",
+      comments: updatedVideo.comments,
+    });
+  } catch (err) {
+    console.log(err.message);
+    res.status(500).json({ message: `Server Error : ${err.message} ` });
+  }
+};
+
+export const deleteComment = async (req, res) => {
+  try {
+    const videoId = req.params.id;
+    const { commentId } = req.body;
+    const video = await Video.findById(videoId);
+
+    if (!video) {
+      return res.status(404).json({ message: "Video not found" });
+    }
+
+    const comment = video.comments.id(commentId);
+
+    if (!comment) {
+      return res
+        .status(404)
+        .json({ message: "The comment you want to edit is not there...😬" });
+    }
+
+    if (
+      (!comment.userId || comment.userId.toString() !== req.user.id) &&
+      comment.userName !== req.user.name
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Not authorized to delete this comment" });
+    }
+
+    comment.deleteOne();
+
+    await video.save();
+
+    const updatedVideo = await Video.findById(videoId).populate(
+      "comments.userId",
+      "name",
+    );
+
+    res.status(200).json({
+      message: "Comment  Deleted Successfully...",
+      comments: updatedVideo.comments,
+    });
+  } catch (err) {
+    console.log(err.message);
+    res.status(500).json({ message: `Server Error: ${err.message}` });
   }
 };
