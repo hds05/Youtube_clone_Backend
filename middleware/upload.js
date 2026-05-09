@@ -1,30 +1,29 @@
-import multer from "multer"
+// importing multer package
+import multer from "multer";
 
-// STORAGE CONFIG
+// STORAGE CONFIG FOR UPLOADED FILES
 const storage = multer.diskStorage({
-
-  // WHERE TO STORE FILES
+  // WHERE TO UPLOADED STORE FILES
   destination: (req, file, cb) => {
-
-    cb(null, "uploads/videos")
-
+    // cb => callback function
+    // first argument => error (null means no error)
+    // second argument => destination folder path
+    cb(null, "uploads/videos");
   },
 
   // FILE NAME
   filename: (req, file, cb) => {
+    // creating unique file name using current timestamp to avoid duplicate file names
+    const uniqueName = Date.now() + "-" + file.originalname;
 
-    const uniqueName =
-      Date.now() + "-" + file.originalname
+    // saving file with generated name
+    cb(null, uniqueName);
+  },
+});
 
-    cb(null, uniqueName)
-
-  }
-
-})
-
-// MULTER INSTANCE
+// creating multer instance with storage configuration
 const upload = multer({
-  storage
-})
-
-export default upload
+  storage,
+});
+// exporting upload middleware
+export default upload;
